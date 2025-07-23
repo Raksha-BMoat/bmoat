@@ -18,6 +18,7 @@
             border-radius: 1rem; /* Rounded corners */
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Subtle shadow */
             overflow-x: auto; /* Enable horizontal scrolling for smaller screens */
+            display: block; /* Make the Gantt chart visible */
         }
         .gantt-bar {
             border-radius: 0.5rem; /* Rounded corners for bars */
@@ -42,6 +43,16 @@
         .bg-developer-video { background-color: #3b82f6; } /* Blue */
         .bg-ops-project { background-color: #8b5cf6; } /* Violet */
         .bg-co-founders { background-color: #ec4899; } /* Pink */
+
+        /* Text colors for roles in the summary (kept for consistency, but summary will be hidden) */
+        .text-sales-marketing { color: #6366f1; }
+        .text-website-digital { color: #ef4444; }
+        .text-sales-collateral { color: #f97316; }
+        .text-team-general { color: #06b6d4; }
+        .text-content-creator { color: #10b981; }
+        .text-developer-video { color: #3b82f6; }
+        .text-ops-project { color: #8b5cf6; }
+        .text-co-founders { color: #ec4899; }
 
         .grid-container {
             display: grid;
@@ -69,12 +80,7 @@
             padding: 0.75rem 0.5rem;
             text-align: center;
             border-radius: 0.5rem;
-        }
-
-        .grid-header {
-            font-weight: 600; /* Semi-bold */
-            background-color: #e2e8f0; /* Light gray */
-            color: #475569; /* Slate */
+            display: block; /* Make grid cells visible */
         }
 
         .role-label {
@@ -83,7 +89,7 @@
             padding-left: 1rem;
             background-color: #f8fafc; /* Lighter gray */
             border-radius: 0.5rem;
-            display: flex;
+            display: flex; /* Make role labels visible */
             align-items: center;
         }
 
@@ -99,14 +105,16 @@
 </head>
 <body class="p-8">
     <div class="max-w-7xl mx-auto">
-        <h1 class="text-4xl font-bold text-center mb-8 text-gray-800">5-Week Action Plan Overview</h1>
+        <h1 class="text-4xl font-bold text-center mb-8 text-gray-800">5-Week Action Plan Overview (Gantt Chart)</h1>
 
+        <!-- The Gantt chart container is now visible -->
         <div class="gantt-chart-container">
             <div id="ganttChart" class="grid-container">
                 <!-- Chart will be rendered here by JavaScript -->
             </div>
         </div>
 
+        <!-- The Action Plan Details and Color Key are now visible -->
         <div class="mt-12 p-6 bg-white rounded-xl shadow-lg">
             <h2 class="text-2xl font-semibold mb-4 text-gray-700">Action Plan Details</h2>
             <p class="text-gray-600 mb-4">This chart visually represents the key tasks for each role across the 5-week action plan. Each colored bar indicates a task, its duration, and the responsible role.</p>
@@ -123,6 +131,21 @@
                 <li class="flex items-center"><span class="w-4 h-4 rounded-full bg-ops-project mr-2"></span> Ops Manager & Project Manager</li>
                 <li class="flex items-center"><span class="w-4 h-4 rounded-full bg-co-founders mr-2"></span> Co-founders</li>
             </ul>
+        </div>
+
+        <!-- Section for Week-wise Roles Needed Summary is now hidden -->
+        <div class="mt-12 p-6 bg-white rounded-xl shadow-lg" style="display: none;">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-700">Roles Needed Per Week Summary</h2>
+            <div id="rolesPerWeekSummary" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Summary will be rendered here by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Button to go to action.html -->
+        <div class="flex justify-center mt-12 mb-8">
+            <a href="action.html" class="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75">
+                Go to Action Page
+            </a>
         </div>
     </div>
 
@@ -259,7 +282,23 @@
             }
         ];
 
-        // Function to render the Gantt chart
+        // Helper function to get the text color class for a role (kept for consistency)
+        function getRoleTextColorClass(roleName) {
+            const roleMap = {
+                "Sales & Marketing Person": "text-sales-marketing",
+                "Website & Digital Presence": "text-website-digital",
+                "Sales Collateral": "text-sales-collateral",
+                "Team (General)": "text-team-general",
+                "Content Creator": "text-content-creator",
+                "Developer & Product Video Builder": "text-developer-video",
+                "Ops Manager & Project Manager": "text-ops-project",
+                "Project Manager": "text-ops-project",
+                "Co-founders": "text-co-founders"
+            };
+            return roleMap[roleName] || "text-gray-700";
+        }
+
+        // Function to render the Gantt chart (now visible)
         function renderGanttChart() {
             const ganttChartDiv = document.getElementById('ganttChart');
             ganttChartDiv.innerHTML = ''; // Clear existing content
@@ -300,8 +339,8 @@
                             taskItem.tasks.forEach(taskDesc => {
                                 const taskBar = document.createElement('div');
                                 taskBar.className = `gantt-bar ${taskItem.colorClass} hover:opacity-90 transition-opacity cursor-help`;
-                                taskBar.textContent = taskDesc; // Display full text for now, ellipsis if overflows
-                                taskBar.title = taskDesc; // Tooltip for full description
+                                taskBar.textContent = taskDesc;
+                                taskBar.title = taskDesc;
                                 taskWrapper.appendChild(taskBar);
                             });
                         });
@@ -312,11 +351,22 @@
             });
         }
 
-        // Render the chart when the window loads
-        window.onload = renderGanttChart;
+        // Function to render the week-wise roles summary (now hidden)
+        function renderRolesPerWeekSummary() {
+            // This function is kept for structural integrity but its output is hidden
+            const rolesPerWeekSummaryDiv = document.getElementById('rolesPerWeekSummary');
+            rolesPerWeekSummaryDiv.innerHTML = '';
+        }
 
-        // Re-render on window resize for responsiveness (optional, but good for dynamic layouts)
-        window.onresize = renderGanttChart;
+        // Render the Gantt chart when the window loads
+        window.onload = () => {
+            renderGanttChart();
+        };
+
+        // Re-render on window resize for responsiveness
+        window.onresize = () => {
+            renderGanttChart();
+        };
     </script>
 </body>
 </html>
