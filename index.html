@@ -3,370 +3,597 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Action Plan Visualizer</title>
+    <title>5-Week Revenue Generation Action Plan</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- React and ReactDOM CDNs -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel CDN for JSX transformation in the browser (for development/simple setups) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f0f4f8; /* Light blue-gray background */
-            color: #334155; /* Darker text */
+            background-color: #f3f4f6; /* Light gray background */
+            color: #374151; /* Dark gray text */
         }
-        .gantt-chart-container {
-            background-color: #ffffff;
-            border-radius: 1rem; /* Rounded corners */
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Subtle shadow */
-            overflow-x: auto; /* Enable horizontal scrolling for smaller screens */
-            display: block; /* Make the Gantt chart visible */
+        /* Styles for collapsible content */
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out; /* Smooth transition for collapsing */
         }
-        .gantt-bar {
-            border-radius: 0.5rem; /* Rounded corners for bars */
-            padding: 0.75rem 1rem; /* Increased padding for larger box size */
-            font-size: 0.875rem; /* sm text */
-            color: #ffffff;
-            white-space: normal; /* Allow text to wrap */
-            overflow: visible; /* Allow content to be fully visible */
-            text-overflow: clip; /* Prevent ellipsis */
+        .collapsible-content.open {
+            max-height: 1000px; /* A large enough value to show all content when open */
+            transition: max-height 0.5s ease-in; /* Slightly longer for expanding */
+        }
+        .collapsible-header {
+            cursor: pointer;
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-            text-align: center;
-            height: auto; /* Allow height to adjust based on content */
-        }
-        /* Custom colors for different roles */
-        .bg-sales-marketing { background-color: #6366f1; } /* Indigo */
-        .bg-website-digital { background-color: #ef4444; } /* Red */
-        .bg-sales-collateral { background-color: #f97316; } /* Orange */
-        .bg-team-general { background-color: #06b6d4; } /* Cyan */
-        .bg-content-creator { background-color: #10b981; } /* Emerald */
-        .bg-developer-video { background-color: #3b82f6; } /* Blue */
-        .bg-ops-project { background-color: #8b5cf6; } /* Violet */
-        .bg-co-founders { background-color: #ec4899; } /* Pink */
-
-        /* Text colors for roles in the summary (kept for consistency, but summary will be hidden) */
-        .text-sales-marketing { color: #6366f1; }
-        .text-website-digital { color: #ef4444; }
-        .text-sales-collateral { color: #f97316; }
-        .text-team-general { color: #06b6d4; }
-        .text-content-creator { color: #10b981; }
-        .text-developer-video { color: #3b82f6; }
-        .text-ops-project { color: #8b5cf6; }
-        .text-co-founders { color: #ec4899; }
-
-        .grid-container {
-            display: grid;
-            /* Default for small screens: role column + enough width for all 5 weeks to scroll horizontally */
-            grid-template-columns: minmax(120px, 0.5fr) repeat(5, minmax(80px, 1fr));
-            gap: 0.5rem;
             padding: 1rem;
+            background-color: #f9fafb; /* Lighter background for header */
+            border-bottom: 1px solid #e5e7eb;
+            border-radius: 0.5rem 0.5rem 0 0; /* Rounded top corners */
         }
-
-        /* Medium screens (tablets) */
-        @media (min-width: 768px) {
-            .grid-container {
-                grid-template-columns: minmax(150px, 0.5fr) repeat(5, minmax(100px, 1fr));
-            }
+        .collapsible-header:hover {
+            background-color: #f3f4f6; /* Slightly darker on hover */
         }
-
-        /* Large screens (desktops) */
-        @media (min-width: 1024px) {
-            .grid-container {
-                grid-template-columns: minmax(180px, 0.5fr) repeat(5, minmax(120px, 1fr));
-            }
+        .collapsible-header + .collapsible-content {
+            border-radius: 0 0 0.5rem 0.5rem; /* Rounded bottom corners for content */
         }
-
-        .grid-header, .grid-cell {
-            padding: 0.75rem 0.5rem;
-            text-align: center;
-            border-radius: 0.5rem;
-            display: block; /* Make grid cells visible */
+        .arrow-icon {
+            transition: transform 0.3s ease-out;
         }
-
-        .role-label {
-            font-weight: 500; /* Medium */
-            text-align: left;
-            padding-left: 1rem;
-            background-color: #f8fafc; /* Lighter gray */
-            border-radius: 0.5rem;
-            display: flex; /* Make role labels visible */
-            align-items: center;
-        }
-
-        /* Ensure task bars align correctly within their week column */
-        .task-wrapper {
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem; /* Space between tasks in the same cell */
-            height: 100%;
-            justify-content: center; /* Center tasks vertically */
+        .arrow-icon.rotated {
+            transform: rotate(180deg);
         }
     </style>
 </head>
-<body class="p-8">
-    <div class="max-w-7xl mx-auto">
-        <h1 class="text-4xl font-bold text-center mb-8 text-gray-800">5-Week Action Plan Overview (Gantt Chart)</h1>
+<body class="min-h-screen bg-gray-100">
+    <div id="root"></div>
 
-        <!-- The Gantt chart container is now visible -->
-        <div class="gantt-chart-container">
-            <div id="ganttChart" class="grid-container">
-                <!-- Chart will be rendered here by JavaScript -->
-            </div>
-        </div>
+    <script type="text/babel">
+        // Main App component
+        const App = () => {
+            // Destructure useState from React
+            const { useState } = React;
+            const [currentPage, setCurrentPage] = useState('overview'); // State to manage current page
 
-        <!-- The Action Plan Details and Color Key are now visible -->
-        <div class="mt-12 p-6 bg-white rounded-xl shadow-lg">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-700">Action Plan Details</h2>
-            <p class="text-gray-600 mb-4">This chart visually represents the key tasks for each role across the 5-week action plan. Each colored bar indicates a task, its duration, and the responsible role.</p>
-            <p class="text-gray-600">Hover over the bars to see the full task description.</p>
-
-            <h3 class="text-xl font-semibold mt-6 mb-3 text-gray-700">Color Key:</h3>
-            <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-gray-700">
-                <li class="flex items-center"><span class="w-4 h-4 rounded-full bg-sales-marketing mr-2"></span> Sales & Marketing Person</li>
-                <li class="flex items-center"><span class="w-4 h-4 rounded-full bg-website-digital mr-2"></span> Website & Digital Presence</li>
-                <li class="flex items-center"><span class="w-4 h-4 rounded-full bg-sales-collateral mr-2"></span> Sales Collateral</li>
-                <li class="flex items-center"><span class="w-4 h-4 rounded-full bg-team-general mr-2"></span> Team (General)</li>
-                <li class="flex items-center"><span class="w-4 h-4 rounded-full bg-content-creator mr-2"></span> Content Creator</li>
-                <li class="flex items-center"><span class="w-4 h-4 rounded-full bg-developer-video mr-2"></span> Developer & Product Video Builder</li>
-                <li class="flex items-center"><span class="w-4 h-4 rounded-full bg-ops-project mr-2"></span> Ops Manager & Project Manager</li>
-                <li class="flex items-center"><span class="w-4 h-4 rounded-full bg-co-founders mr-2"></span> Co-founders</li>
-            </ul>
-        </div>
-
-        <!-- Section for Week-wise Roles Needed Summary is now hidden -->
-        <div class="mt-12 p-6 bg-white rounded-xl shadow-lg" style="display: none;">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-700">Roles Needed Per Week Summary</h2>
-            <div id="rolesPerWeekSummary" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Summary will be rendered here by JavaScript -->
-            </div>
-        </div>
-
-        <!-- Button to go to action.html -->
-        <div class="flex justify-center mt-12 mb-8">
-            <a href="action.html" class="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75">
-                Go to Action Page
-            </a>
-        </div>
-    </div>
-
-    <script>
-        // Define the action plan data
-        const actionPlan = [
-            {
-                week: 1,
-                role: "Sales & Marketing Person",
-                tasks: [
-                    "Identify 10-15 'warm' leads from existing contacts, past clients, and recent inquiries, suitable for Branding, Website Building (Framer/Webflow), Pitchdeck Workshops, or product integrations."
-                ],
-                colorClass: "bg-sales-marketing"
-            },
-            {
-                week: 1,
-                role: "Website & Digital Presence",
-                tasks: [
-                    "Update the website to clearly mention Pitchdeck Storytelling Workshops, the HubSpot Lottie Plugin, and the Shopify WhatsApp Pricing Plugin, with optimized calls-to-action (CTAs).",
-                    "Draft 3-5 concise LinkedIn posts to announce the full range of services and products."
-                ],
-                colorClass: "bg-website-digital"
-            },
-            {
-                week: 1,
-                role: "Sales Collateral",
-                tasks: [
-                    "Develop concise proposals or one-pagers for core services (Branding, Web Build, Pitchdeck), highlighting benefits, project duration (under 12 weeks), and estimated pricing.",
-                    "Prepare 2-3 brief case studies or testimonials from successful projects, especially quickly completed ones."
-                ],
-                colorClass: "bg-sales-collateral"
-            },
-            {
-                week: 2,
-                role: "Sales & Marketing Person",
-                tasks: [
-                    "Execute personalized outreach to warm leads identified in Week 1, focusing on understanding needs and pitching relevant services/products with an emphasis on the 12-week project maximum.",
-                    "Aim to schedule 5-7 initial discovery calls.",
-                    "Research preferences and best fits based on current purchase ICP's LinkedIn profile. Identify their role, explore similar people, and define their non-negotiable and explorable JTBDs."
-                ],
-                colorClass: "bg-sales-marketing"
-            },
-            {
-                week: 2,
-                role: "Team (General)",
-                tasks: [
-                    "Share the published LinkedIn posts announcing full offerings."
-                ],
-                colorClass: "bg-team-general"
-            },
-            {
-                week: 2,
-                role: "Content Creator",
-                tasks: [
-                    "Draft a short blog post or detailed service page for the Pitchdeck Storytelling Workshops, highlighting their value for seed and early-stage founders."
-                ],
-                colorClass: "bg-content-creator"
-            },
-            {
-                week: 2,
-                role: "Developer & Product Video Builder",
-                tasks: [
-                    "Create crisp, short demo videos (under 2-3 minutes) for both the HubSpot Lottie Plugin and the Shopify WhatsApp Pricing Plugin, ready for sales conversations."
-                ],
-                colorClass: "bg-developer-video"
-            },
-            {
-                week: 3,
-                role: "Sales & Marketing Person",
-                tasks: [
-                    "Prepare and send out 3-5 detailed proposals based on Week 2 discovery calls, clearly stating a maximum project duration of 12 weeks and transparent pricing.",
-                    "Actively follow up on submitted proposals and negotiate with clients to close deals.",
-                    "Research and identify 5-10 new potential leads."
-                ],
-                colorClass: "bg-sales-marketing"
-            },
-            {
-                week: 3,
-                role: "Ops Manager & Project Manager",
-                tasks: [
-                    "Review team availability and potential workload for incoming 12-week projects to identify potential bottlenecks."
-                ],
-                colorClass: "bg-ops-project"
-            },
-            {
-                week: 4,
-                role: "Sales & Marketing Person",
-                tasks: [
-                    "Focus on closing 2-3 contracts.",
-                    "Work with the Ops Manager to facilitate documentation and payment processes.",
-                    "Initiate outreach to new leads identified in Week 3 and schedule 3-5 new discovery calls."
-                ],
-                colorClass: "bg-sales-marketing"
-            },
-            {
-                week: 4,
-                role: "Project Manager",
-                tasks: [
-                    "Hold an internal kick-off meeting with relevant team members for any signed contracts to ensure a smooth transition and prompt client onboarding."
-                ],
-                colorClass: "bg-ops-project" // Using ops-project color for Project Manager as well
-            },
-            {
-                week: 4,
-                role: "Content Creator",
-                tasks: [
-                    "Draft short articles or social media snippets focusing on how the HubSpot Lottie Plugin and Shopify WhatsApp Pricing Plugin solve specific user problems."
-                ],
-                colorClass: "bg-content-creator"
-            },
-            {
-                week: 5,
-                role: "Team (General)",
-                tasks: [
-                    "Intensive follow-up on all open proposals and leads, prioritizing conversations with the highest potential value to close remaining funding gaps."
-                ],
-                colorClass: "bg-team-general"
-            },
-            {
-                week: 5,
-                role: "Sales & Marketing Person",
-                tasks: [
-                    "Send targeted emails or LinkedIn messages to potential HubSpot and Shopify users with product demo videos and new content from Week 4 to encourage product trials or demonstrations."
-                ],
-                colorClass: "bg-sales-marketing"
-            },
-            {
-                week: 5,
-                role: "Co-founders",
-                tasks: [
-                    "Lead a team meeting to review overall performance against the project funding goal, discuss successes and challenges, and plan for the next cycle."
-                ],
-                colorClass: "bg-co-founders"
-            }
-        ];
-
-        // Helper function to get the text color class for a role (kept for consistency)
-        function getRoleTextColorClass(roleName) {
-            const roleMap = {
-                "Sales & Marketing Person": "text-sales-marketing",
-                "Website & Digital Presence": "text-website-digital",
-                "Sales Collateral": "text-sales-collateral",
-                "Team (General)": "text-team-general",
-                "Content Creator": "text-content-creator",
-                "Developer & Product Video Builder": "text-developer-video",
-                "Ops Manager & Project Manager": "text-ops-project",
-                "Project Manager": "text-ops-project",
-                "Co-founders": "text-co-founders"
+            // Function to navigate between pages
+            const navigateTo = (page) => {
+                setCurrentPage(page);
+                window.scrollTo(0, 0); // Scroll to top on page change
             };
-            return roleMap[roleName] || "text-gray-700";
-        }
 
-        // Function to render the Gantt chart (now visible)
-        function renderGanttChart() {
-            const ganttChartDiv = document.getElementById('ganttChart');
-            ganttChartDiv.innerHTML = ''; // Clear existing content
+            // Collapsible Card Component
+            const CollapsibleCard = ({ title, children, defaultOpen = false, headerBgClass = 'bg-white', headerTextColorClass = 'text-gray-800' }) => {
+                const [isOpen, setIsOpen] = useState(defaultOpen);
 
-            const roles = [...new Set(actionPlan.map(item => item.role))];
-            const numWeeks = 5;
+                const toggleOpen = () => {
+                    setIsOpen(!isOpen);
+                };
 
-            // Add header row (empty cell for roles, then week numbers)
-            const headerRow = document.createElement('div');
-            headerRow.className = 'grid-header';
-            headerRow.textContent = 'Role';
-            ganttChartDiv.appendChild(headerRow);
+                return (
+                    <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+                        <div
+                            className={`collapsible-header ${headerBgClass} ${headerTextColorClass} font-semibold`}
+                            onClick={toggleOpen}
+                        >
+                            <h4 className="text-lg sm:text-xl">{title}</h4>
+                            <svg
+                                className={`w-5 h-5 arrow-icon ${isOpen ? 'rotated' : ''}`}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                        <div className={`collapsible-content ${isOpen ? 'open' : ''}`}>
+                            <div className="p-4">
+                                {children}
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
 
-            for (let i = 1; i <= numWeeks; i++) {
-                const weekHeader = document.createElement('div');
-                weekHeader.className = 'grid-header';
-                weekHeader.textContent = `Week ${i}`;
-                ganttChartDiv.appendChild(weekHeader);
-            }
 
-            // Add rows for each role
-            roles.forEach(role => {
-                const roleLabel = document.createElement('div');
-                roleLabel.className = 'role-label';
-                roleLabel.textContent = role;
-                ganttChartDiv.appendChild(roleLabel);
+            // Page components
+            const OverviewPage = () => (
+                <div className="space-y-6">
+                    <p className="text-lg sm:text-xl text-gray-700 mb-6">
+                        We're embarking on a focused <span className="font-semibold text-indigo-600">5-week sprint</span> with a clear and ambitious goal: to secure **our target project funding** worth of signed contracts for projects that last a <span className="font-semibold text-indigo-600">maximum of 12 weeks</span>. This plan leverages our existing strengths and optimizes our outreach to achieve this target.
+                    </p>
 
-                for (let i = 1; i <= numWeeks; i++) {
-                    const weekCell = document.createElement('div');
-                    weekCell.className = 'grid-cell';
-                    
-                    const tasksInWeek = actionPlan.filter(item => item.role === role && item.week === i);
-                    
-                    if (tasksInWeek.length > 0) {
-                        const taskWrapper = document.createElement('div');
-                        taskWrapper.className = 'task-wrapper';
-                        tasksInWeek.forEach(taskItem => {
-                            taskItem.tasks.forEach(taskDesc => {
-                                const taskBar = document.createElement('div');
-                                taskBar.className = `gantt-bar ${taskItem.colorClass} hover:opacity-90 transition-opacity cursor-help`;
-                                taskBar.textContent = taskDesc;
-                                taskBar.title = taskDesc;
-                                taskWrapper.appendChild(taskBar);
-                            });
-                        });
-                        weekCell.appendChild(taskWrapper);
-                    }
-                    ganttChartDiv.appendChild(weekCell);
+                    <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">Our Core Offerings</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div className="bg-blue-50 p-6 rounded-lg shadow-md border-l-4 border-blue-500">
+                            <h3 className="text-xl font-semibold text-blue-700 mb-2">Core Services:</h3>
+                            <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                                <li>Branding exercises and brand identity creation</li>
+                                <li>Website building on Framer and Webflow</li>
+                                <li>Pitchdeck Storytelling Workshops for seed and early-stage founders</li>
+                            </ul>
+                        </div>
+                        <div className="bg-green-50 p-6 rounded-lg shadow-md border-l-4 border-green-500">
+                            <h3 className="text-xl font-semibold text-green-700 mb-2">Products:</h3>
+                            <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                                <li>A Lottie animation integration plugin for HubSpot</li>
+                                <li>A WhatsApp pricing plugin for Shopify</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">Our Team & Approach</h2>
+                    <div className="bg-purple-50 p-6 rounded-lg shadow-md border-l-4 border-purple-500">
+                        <p className="text-lg text-gray-700 mb-2">
+                            Our team consists of <span className="font-semibold">5 dedicated individuals</span>, each wearing multiple hats to ensure comprehensive coverage and efficiency:
+                        </p>
+                        <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                            <li>1 Developer</li>
+                            <li>1 Product Video Builder</li>
+                            <li>1 Brand Identity Designer</li>
+                            <li>1 Storyteller</li>
+                            <li>1 Content Creator</li>
+                            <li>1 Ops Manager</li>
+                            <li>1 Sales & Marketing Person</li>
+                        </ul>
+                        <p className="mt-4 text-gray-700 italic">
+                            This plan is designed to be agile and collaborative, ensuring we move forward efficiently and effectively towards our collective project funding goal.
+                        </p>
+                    </div>
+
+                    <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mt-10 mb-4">The 5-Week Sprint: Quick Overview</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="bg-white p-5 rounded-lg shadow-md border border-gray-200">
+                            <h3 className="text-xl font-semibold text-indigo-700 mb-2">Week 1: Foundation & High-Impact Setup</h3>
+                            <p className="text-gray-600">Rapidly update online presence, identify warm leads, prepare sales assets.</p>
+                        </div>
+                        <div className="bg-white p-5 rounded-lg shadow-md border border-gray-200">
+                            <h3 className="text-xl font-semibold text-indigo-700 mb-2">Week 2: Targeted Outreach & Lead Nurturing</h3>
+                            <p className="text-gray-600">Initiate direct outreach, engage identified leads, build new pipeline.</p>
+                        </div>
+                        <div className="bg-white p-5 rounded-lg shadow-md border border-gray-200">
+                            <h3 className="text-xl font-semibold text-indigo-700 mb-2">Week 3: Proposal Generation & Negotiation</h3>
+                            <p className="text-gray-600">Convert discovery calls into proposals, move towards contract signing.</p>
+                        </div>
+                        <div className="bg-white p-5 rounded-lg shadow-md border border-gray-200">
+                            <h3 className="text-xl font-semibold text-indigo-700 mb-2">Week 4: Closing Deals & Pipeline Expansion</h3>
+                            <p className="text-gray-600">Sign contracts, manage initial project handoffs, expand sales pipeline.</p>
+                        </div>
+                        <div className="bg-white p-5 rounded-lg shadow-md border border-gray-200">
+                            <h3 className="text-xl font-semibold text-indigo-700 mb-2">Week 5: Final Push & Review</h3>
+                            <p className="text-gray-600">Secure remaining contracts, review progress, plan next steps.</p>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const DetailedPlanPage = () => (
+                <div className="space-y-8">
+                    {/* Week 1 */}
+                    <section className="p-6 bg-blue-50 rounded-lg shadow-md border-l-4 border-blue-500">
+                        <h2 className="text-2xl sm:text-3xl font-bold text-blue-800 mb-4">
+                            1. Week 1: Foundation & High-Impact Setup <span className="text-base font-normal">(July 28 - Aug 3)</span>
+                        </h2>
+                        <p className="text-lg text-gray-700 mb-4">
+                            <span className="font-semibold text-blue-700">Goal:</span> Rapidly update our online presence to reflect our full offerings, identify immediate warm leads, and prepare essential sales assets.
+                        </p>
+                        <div className="space-y-5">
+                            <CollapsibleCard title="Website & Digital Presence Update" defaultOpen={true}>
+                                <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                                    <li><span className="font-medium">Action:</span> Immediately update our existing website to include dedicated sections or clear mentions of our **Pitchdeck Storytelling Workshops**, the **HubSpot Lottie Plugin**, and the **Shopify WhatsApp Pricing Plugin**.</li>
+                                    <li><span className="font-medium">Responsible:</span> Sales & Marketing Person (Lead), Content Creator (Copy), Brand Identity Designer (Visuals)</li>
+                                    <li><span className="font-medium">Dependency:</span> Content Creator provides initial copy; Brand Identity Designer provides visual guidelines/assets.</li>
+                                    <li><span className="font-medium">Deliverable:</span> Website updated, all services/products clearly visible.</li>
+                                    <li><span className="font-medium">Action:</span> Ensure clear Calls-to-Action (CTAs) for all services and products, encouraging direct inquiries.</li>
+                                    <li><span className="font-medium">Responsible:</span> Sales & Marketing Person (Lead), Brand Identity Designer (Design)</li>
+                                    <li><span className="font-medium">Deliverable:</span> Optimized CTAs.</li>
+                                    <li><span className="font-medium">Action:</span> Draft 3-5 concise, compelling LinkedIn posts announcing our full range of services and products.</li>
+                                    <li><span className="font-medium">Responsible:</span> Content Creator (Lead), Sales & Marketing Person (Review/Strategy)</li>
+                                    <li><span className="font-medium">Deliverable:</span> LinkedIn posts ready for scheduling.</li>
+                                </ul>
+                            </CollapsibleCard>
+                            <CollapsibleCard title="Lead Identification & Qualification">
+                                <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                                    <li><span className="font-medium">Action:</span> Sales & Marketing Person to go through existing contacts, past clients, and recent inquiries. Identify a list of 10-15 "warm" leads who would be a good fit for our **Branding, Website Building (Framer/Webflow), Pitchdeck Workshops, or product integrations**.</li>
+                                    <li><span className="font-medium">Responsible:</span> Sales & Marketing Person</li>
+                                    <li><span className="font-medium">Deliverable:</span> List of 10-15 "warm" leads for immediate outreach.</li>
+                                </ul>
+                            </CollapsibleCard>
+                            <CollapsibleCard title="Sales Collateral Preparation">
+                                <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                                    <li><span className="font-medium">Action:</span> Develop and refine concise proposals or one-pagers for each core service (**Branding, Web Build, Pitchdeck**) that highlight benefits, project duration (under 12 weeks), and estimated pricing tiers.</li>
+                                    <li><span className="font-medium">Responsible:</span> Sales & Marketing Person (Lead), Storyteller (for Pitchdeck Workshop materials), Brand Identity Designer (for Branding/Web materials)</li>
+                                    <li><span className="font-medium">Dependency:</span> Storyteller provides core Pitchdeck workshop content; Brand Identity Designer provides branding/web templates.</li>
+                                    <li><span className="font-medium">Deliverable:</span> Ready-to-use sales one-pagers/templates for each service.</li>
+                                    <li><span className="font-medium">Action:</span> Prepare 2-3 brief, impactful case studies or testimonials for previous successful projects (especially those completed quickly).</li>
+                                    <li><span className="font-medium">Responsible:</span> Content Creator (Lead), Project Manager (for project details)</li>
+                                    <li><span className="font-medium">Deliverable:</span> 2-3 short, impactful case studies.</li>
+                                </ul>
+                            </CollapsibleCard>
+                        </div>
+                    </section>
+
+                    {/* Week 2 */}
+                    <section className="p-6 bg-green-50 rounded-lg shadow-md border-l-4 border-green-500">
+                        <h2 className="text-2xl sm:text-3xl font-bold text-green-800 mb-4">
+                            2. Week 2: Targeted Outreach & Lead Nurturing <span className="text-base font-normal">(Aug 4 - Aug 10)</span>
+                        </h2>
+                        <p className="text-lg text-gray-700 mb-4">
+                            <span className="font-semibold text-green-700">Goal:</span> Initiate direct outreach, engage identified leads, and start building a new pipeline.
+                        </p>
+                        <div className="space-y-5">
+                            <CollapsibleCard title="Direct Outreach Blitz" defaultOpen={true}>
+                                <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                                    <li><span className="font-medium">Action:</span> Sales & Marketing Person to execute personalized outreach (email, LinkedIn message) to the "warm" leads identified in Week 1. Focus on understanding their needs and pitching relevant services or products with a clear emphasis on our **12-week project maximum**.</li>
+                                    <li><span className="font-medium">Responsible:</span> Sales & Marketing Person</li>
+                                    <li><span className="font-medium">Dependency:</span> Completion of "Lead Identification & Qualification" (Week 1).</li>
+                                    <li><span className="font-medium">Deliverable:</span> 10-15 personalized outreach messages sent, follow-up scheduled.</li>
+                                    <li><span className="font-medium">Action:</span> Schedule 5-7 initial discovery calls based on outreach.</li>
+                                    <li><span className="font-medium">Responsible:</span> Sales & Marketing Person</li>
+                                    <li><span className="font-medium">Deliverable:</span> Calendar booked for discovery calls.</li>
+                                </ul>
+                            </CollapsibleCard>
+                            <CollapsibleCard title="Content & Social Amplification">
+                                <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                                    <li><span className="font-medium">Action:</span> Publish the prepared LinkedIn posts to announce full offerings. Encourage team members to share.</li>
+                                    <li><span className="font-medium">Responsible:</span> Content Creator (Lead), Sales & Marketing Person (Scheduling), Entire Team (Sharing)</li>
+                                    <li><span className="font-medium">Dependency:</span> Completion of "LinkedIn posts ready for scheduling" (Week 1).</li>
+                                    <li><span className="font-medium">Deliverable:</span> Increased visibility on LinkedIn.</li>
+                                    <li><span className="font-medium">Action:</span> Content Creator to draft a short blog post or detailed service page for the **Pitchdeck Storytelling Workshops** highlighting the value for seed/early-stage founders.</li>
+                                    <li><span className="font-medium">Responsible:</span> Content Creator (Lead), Storyteller (Content Input)</li>
+                                    <li><span className="font-medium">Deliverable:</span> New content live on website/blog.</li>
+                                </ul>
+                            </CollapsibleCard>
+                            <CollapsibleCard title="Product Demo Prep">
+                                <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                                    <li><span className="font-medium">Action:</span> Developer and Product Video Builder to ensure a crisp, short (under 2-3 mins) demo video is available for both the **HubSpot Lottie Plugin** and **Shopify WhatsApp Pricing Plugin**.</li>
+                                    <li><span className="font-medium">Responsible:</span> Developer (Product Functionality), Product Video Builder (Video Creation)</li>
+                                    <li><span className="font-medium">Deliverable:</span> Demo videos ready for sharing in sales conversations.</li>
+                                </ul>
+                            </CollapsibleCard>
+                        </div>
+                    </section>
+
+                    {/* Week 3 */}
+                    <section className="p-6 bg-yellow-50 rounded-lg shadow-md border-l-4 border-yellow-500">
+                        <h2 className="text-2xl sm:text-3xl font-bold text-yellow-800 mb-4">
+                            3. Week 3: Proposal Generation & Negotiation <span className="text-base font-normal">(Aug 11 - Aug 17)</span>
+                        </h2>
+                        <p className="text-lg text-gray-700 mb-4">
+                            <span className="font-semibold text-yellow-700">Goal:</span> Convert discovery calls into proposals and move towards contract signing.
+                        </p>
+                        <div className="space-y-5">
+                            <CollapsibleCard title="Rapid Proposal Development" defaultOpen={true}>
+                                <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                                    <li><span className="font-medium">Action:</span> Based on discovery calls from Week 2, Sales & Marketing Person (with support from Brand Identity Designer for branding/web, Storyteller for pitchdecks) to prepare and send out 3-5 detailed proposals. Each proposal must clearly state a project duration of **12 weeks maximum** and transparent pricing.</li>
+                                    <li><span className="font-medium">Responsible:</span> Sales & Marketing Person (Lead), Brand Identity Designer (Support), Storyteller (Support)</li>
+                                    <li><span className="font-medium">Dependency:</span> Completion of "Discovery calls scheduled" (Week 2), "Sales Collateral Preparation" (Week 1).</li>
+                                    <li><span className="font-medium">Deliverable:</span> 3-5 proposals submitted.</li>
+                                </ul>
+                            </CollapsibleCard>
+                            <CollapsibleCard title="Follow-ups & Negotiation">
+                                <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                                    <li><span className="font-medium">Action:</span> Sales & Marketing Person to actively follow up on submitted proposals and engage in negotiation to address client concerns and close deals.</li>
+                                    <li><span className="font-medium">Responsible:</span> Sales & Marketing Person</li>
+                                    <li><span className="font-medium">Dependency:</span> "Proposals submitted."</li>
+                                    <li><span className="font-medium">Deliverable:</span> Active negotiations ongoing.</li>
+                                </ul>
+                            </CollapsibleCard>
+                            <CollapsibleCard title="New Lead Generation">
+                                <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                                    <li><span className="font-medium">Action:</span> Sales & Marketing Person to research and identify 5-10 new potential leads via industry groups, founder communities, or direct company research (focus on startups needing pitchdecks, or businesses needing quick branding/website refresh).</li>
+                                    <li><span className="font-medium">Responsible:</span> Sales & Marketing Person</li>
+                                    <li><span className="font-medium">Deliverable:</span> New lead list for outreach.</li>
+                                </ul>
+                            </CollapsibleCard>
+                            <CollapsibleCard title="Team Capacity Check">
+                                <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                                    <li><span className="font-medium">Action:</span> Ops Manager and Project Manager to review team availability and potential workload for incoming 12-week projects. Identify any potential bottlenecks or resource needs.</li>
+                                    <li><span className="font-medium">Responsible:</span> Ops Manager, Project Manager</li>
+                                    <li><span className="font-medium">Deliverable:</span> Internal capacity assessment.</li>
+                                </ul>
+                            </CollapsibleCard>
+                        </div>
+                    </section>
+
+                    {/* Week 4 */}
+                    <section className="p-6 bg-purple-50 rounded-lg shadow-md border-l-4 border-purple-500">
+                        <h2 className="text-2xl sm:text-3xl font-bold text-purple-800 mb-4">
+                            4. Week 4: Closing Deals & Pipeline Expansion <span className="text-base font-normal">(Aug 18 - Aug 24)</span>
+                        </h2>
+                        <p className="text-lg text-gray-700 mb-4">
+                            <span className="font-semibold text-purple-700">Goal:</span> Sign contracts, manage initial project handoffs, and continue building the sales pipeline for future weeks.
+                        </p>
+                        <div className="space-y-5">
+                            <CollapsibleCard title="Contract Signing Focus" defaultOpen={true}>
+                                <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                                    <li><span className="font-medium">Action:</span> Primary focus for the Sales & Marketing Person: Close 2-3 contracts. Facilitate necessary documentation and payment processes with Ops Manager.</li>
+                                    <li><span className="font-medium">Responsible:</span> Sales & Marketing Person (Lead), Ops Manager (Documentation/Payment)</li>
+                                    <li><span className="font-medium">Dependency:</span> "Active negotiations ongoing" (Week 3).</li>
+                                    <li><span className="font-medium">Deliverable:</span> Signed contracts secured, contributing to our target project funding.</li>
+                                </ul>
+                            </CollapsibleCard>
+                            <CollapsibleCard title="Initial Project Handoff">
+                                <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                                    <li><span className="font-medium">Action:</span> For signed contracts, Project Manager to conduct initial internal kick-off with relevant team members (e.g., Brand Identity Designer, Storyteller, Developer) to ensure smooth transition and client onboarding starts promptly.</li>
+                                    <li><span className="font-medium">Responsible:</span> Project Manager (Lead), Ops Manager (Coordination)</li>
+                                    <li><span className="font-medium">Dependency:</span> "Signed contracts secured."</li>
+                                    <li><span className="font-medium">Deliverable:</span> Projects initiated.</li>
+                                </ul>
+                            </CollapsibleCard>
+                            <CollapsibleCard title="Continued Outreach & Nurturing">
+                                <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                                    <li><span className="font-medium">Action:</span> Sales & Marketing Person to initiate outreach to the new leads identified in Week 3. Schedule 3-5 new discovery calls.</li>
+                                    <li><span className="font-medium">Responsible:</span> Sales & Marketing Person</li>
+                                    <li><span className="font-medium">Dependency:</span> "New lead list for outreach" (Week 3).</li>
+                                    <li><span className="font-medium">Deliverable:</span> New calls scheduled.</li>
+                                </ul>
+                            </CollapsibleCard>
+                            <CollapsibleCard title="Content for Products">
+                                <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                                    <li><span className="font-medium">Action:</span> Content Creator to draft short articles or social media snippets focusing on the problem-solving aspects of our **HubSpot Lottie Plugin** and **Shopify WhatsApp Pricing Plugin**, targeting specific pain points of users.</li>
+                                    <li><span className="font-medium">Responsible:</span> Content Creator (Lead), Developer (Technical Input)</li>
+                                    <li><span className="font-medium">Deliverable:</span> Product-focused content drafted.</li>
+                                </ul>
+                            </CollapsibleCard>
+                        </div>
+                    </section>
+
+                    {/* Week 5 */}
+                    <section className="p-6 bg-red-50 rounded-lg shadow-md border-l-4 border-red-500">
+                        <h2 className="text-2xl sm:text-3xl font-bold text-red-800 mb-4">
+                            5. Week 5: Final Push & Review <span className="text-base font-normal">(Aug 25 - Aug 31)</span>
+                        </h2>
+                        <p className="text-lg text-gray-700 mb-4">
+                            <span className="font-semibold text-red-700">Goal:</span> Secure remaining contracts to achieve our target project funding, review progress, and plan next steps.
+                        </p>
+                        <div className="space-y-5">
+                            <CollapsibleCard title="Closing Remaining Gaps" defaultOpen={true}>
+                                <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                                    <li><span className="font-medium">Action:</span> Intensive follow-up on all open proposals and leads. Prioritize conversations with the highest potential value to close the remaining amount needed to reach **our target project funding**. Focus on urgency and the benefits of a quick-start, short-duration project.</li>
+                                    <li><span className="font-medium">Responsible:</span> Sales & Marketing Person (Lead), Co-founders (Strategic Support for high-value deals)</li>
+                                    <li><span className="font-medium">Dependency:</span> All previous sales activities.</li>
+                                    <li><span className="font-medium">Deliverable:</span> Remaining contracts signed, achieving or exceeding our target project funding.</li>
+                                </ul>
+                            </CollapsibleCard>
+                            <CollapsibleCard title="Product Outreach (Focused)">
+                                <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                                    <li><span className="font-medium">Action:</span> Sales & Marketing Person to send out targeted emails/LinkedIn messages to potential HubSpot/Shopify users with the product demo videos and new content from Week 4. Aim for product trials/demonstrations.</li>
+                                    <li><span className="font-medium">Responsible:</span> Sales & Marketing Person</li>
+                                    <li><span className="font-medium">Dependency:</span> "Product-focused content drafted" (Week 4), "Demo videos ready" (Week 2).</li>
+                                    <li><span className="font-medium">Deliverable:</span> Product outreach executed.</li>
+                                </ul>
+                            </CollapsibleCard>
+                            <CollapsibleCard title="Team Review & Celebration">
+                                <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                                    <li><span className="font-medium">Action:</span> Co-Founders to lead a team meeting to review the overall performance against **our target project funding**, discuss successes, challenges, and lessons learned.</li>
+                                    <li><span className="font-medium">Responsible:</span> Co-founders (Lead), Ops Manager (Data Compilation)</li>
+                                    <li><span className="font-medium">Deliverable:</span> Team debrief and plan for next cycle.</li>
+                                </ul>
+                            </CollapsibleCard>
+                        </div>
+                    </section>
+                </div>
+            );
+
+            const HowWeWorkPage = () => (
+                <div className="space-y-6">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">
+                        How We'll Work: Granular Planning & Collaboration for Our Multi-Hat Team
+                    </h2>
+                    <p className="text-lg text-gray-700 mb-4">
+                        To ensure we hit our stride and manage our multi-hat responsibilities effectively, we'll be breaking down tasks further and fostering continuous collaboration:
+                    </p>
+
+                    <CollapsibleCard title="Granular Task Breakdown & Clear Ownership" defaultOpen={true} headerBgClass="bg-indigo-50" headerTextColorClass="text-indigo-700">
+                        <ul className="list-disc pl-5 text-gray-700 space-y-2">
+                            <li>While the plan outlines major actions, each responsible person (e.g., Sales & Marketing Person, Content Creator, etc.) will be expected to break down their assigned actions into specific, smaller sub-tasks.</li>
+                            <li><span className="font-semibold">Every single sub-task will have a named individual accountable for its completion.</span> This eliminates ambiguity and ensures everyone knows their precise role in achieving our goals.</li>
+                            <li><span className="italic">Example:</span> For "Develop sales collateral," the Content Creator might have sub-tasks like: "Draft new copy for Pitchdeck Workshop (Due: July 29th)," "Gather existing client testimonials (Due: July 30th)." The Brand Identity Designer might have "Design proposal template (Due: July 31st)."</li>
+                        </ul>
+                    </CollapsibleCard>
+
+                    <CollapsibleCard title="Project Management Tool" headerBgClass="bg-indigo-50" headerTextColorClass="text-indigo-700">
+                        <ul className="list-disc pl-5 text-gray-700 space-y-2">
+                            <li>We will utilize a simple, shared project management tool (e.g., a shared Google Sheet, Trello, or Asana) to track these granular tasks.</li>
+                            <li>This tool will clearly show <span className="font-semibold">task owners, due dates, and dependencies</span>. This will be crucial for the Ops Manager and Project Manager to keep everything organized, visible, and on track, especially with team members wearing multiple hats.</li>
+                        </ul>
+                    </CollapsibleCard>
+                </div>
+            );
+
+            const RhythmicCadencePage = () => (
+                <div className="space-y-6">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">
+                        Our Rhythmic Cadence: Check-ins & Reviews for Agility
+                    </h2>
+                    <p className="text-lg text-gray-700 mb-4">
+                        Consistent communication is key to our success during this sprint. We'll establish the following rhythm to ensure agility and quick problem-solving:
+                    </p>
+
+                    <CollapsibleCard title="Daily Stand-ups (10-15 minutes)" defaultOpen={true} headerBgClass="bg-yellow-50" headerTextColorClass="text-yellow-700">
+                        <ul className="list-disc pl-5 text-gray-700 space-y-2">
+                            <li><span className="font-semibold">Who:</span> Sales & Marketing Person, Content Creator, Brand Identity Designer, Storyteller, Developer, Product Video Builder.</li>
+                            <li><span className="font-semibold">When:</span> Every morning, promptly at <span className="font-medium">[Suggested Time, e.g., 9:30 AM IST]</span>.</li>
+                            <li><span className="font-semibold">What:</span> Each person will briefly share:
+                                <ul className="list-circle pl-6 mt-1 space-y-1">
+                                    <li>What they accomplished yesterday.</li>
+                                    <li>What they plan to do today.</li>
+                                    <li>Any blockers or challenges they are currently facing.</li>
+                                </ul>
+                            </li>
+                            <li><span className="font-semibold italic">Purpose:</span> To ensure immediate alignment, identify roadblocks quickly so co-founders can assist, and maintain daily momentum.</li>
+                        </ul>
+                    </CollapsibleCard>
+
+                    <CollapsibleCard title="Weekly Performance Review (1 hour)" headerBgClass="bg-yellow-50" headerTextColorClass="text-yellow-700">
+                        <ul className="list-disc pl-5 text-gray-700 space-y-2">
+                            <li><span className="font-semibold">Who:</span> Entire Team, led by Co-founders, with support from Ops Manager and Project Manager.</li>
+                            <li><span className="font-semibold">When:</span> End of each week, <span className="font-medium">[Suggested Day/Time, e.g., Friday, 4:00 PM IST]</span>.</li>
+                            <li><span className="font-semibold">What:</span> In this meeting, we will:
+                                <ul className="list-circle pl-6 mt-1 space-y-1">
+                                    <li>Review progress against our key indicators (KPIs).</li>
+                                    <li>Discuss challenges encountered and collaboratively brainstorm solutions.</li>
+                                    <li>Share lessons learned from the past week – what worked, what didn't.</li>
+                                    <li>Adjust tactics and priorities for the upcoming week based on our learnings and market feedback.</li>
+                                </ul>
+                            </li>
+                            <li><span className="font-semibold italic">Purpose:</span> To assess overall progress towards our target project funding, adapt our strategy, and foster continuous improvement and team cohesion.</li>
+                        </ul>
+                    </CollapsibleCard>
+                </div>
+            );
+
+            const RobustMeasurementPage = () => (
+                <div className="space-y-6">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">
+                        Robust Measurement: Tracking Our Progress Towards Our Target
+                    </h2>
+                    <p className="text-lg text-gray-700 mb-4">
+                        To ensure we're always on course and can react quickly, we'll implement robust measurement mechanisms:
+                    </p>
+
+                    <CollapsibleCard title="Key Performance Indicators (KPIs)" defaultOpen={true} headerBgClass="bg-green-50" headerTextColorClass="text-green-700">
+                        <p className="mb-3 text-gray-700">We will closely track the following leading indicators, which will tell us if we're on the right path towards our <span className="font-semibold">target project funding</span>:</p>
+                        <ul className="list-disc pl-5 text-gray-700 space-y-2">
+                            <li><span className="font-semibold">Week 1:</span> Number of website sections/pages updated, number of LinkedIn posts drafted, number of warm leads identified (target 10-15), sales collateral readiness (e.g., % complete).</li>
+                            <li><span className="font-semibold">Week 2:</span> Number of personalized outreach messages sent (target 10-15), number of discovery calls scheduled (target 5-7), engagement on LinkedIn posts (e.g., likes/shares), demo video readiness.</li>
+                            <li><span className="font-semibold">Week 3:</span> Number of proposals sent (target 3-5), number of new leads identified (target 5-10).</li>
+                            <li><span className="font-semibold">Week 4:</span> Number of contracts signed (target 2-3), total value of contracts signed, number of new discovery calls scheduled (target 3-5).</li>
+                            <li><span className="font-semibold">Week 5:</span> Final total value of contracts signed (aiming for our target project funding), number of product trials/demonstrations initiated.</li>
+                        </ul>
+                    </CollapsibleCard>
+
+                    <CollapsibleCard title="KPI Dashboard" headerBgClass="bg-green-50" headerTextColorClass="text-green-700">
+                        <p className="text-gray-700">We will set up a simple, accessible dashboard (e.g., a shared Google Sheet with clear visuals) where everyone can see our KPIs updated daily/weekly by the Ops Manager. This transparency fosters accountability and keeps us all focused on our shared objectives.</p>
+                    </CollapsibleCard>
+
+                    <CollapsibleCard title="Early Warning System" headerBgClass="bg-green-50" headerTextColorClass="text-green-700">
+                        <p className="text-gray-700">We will actively monitor these KPIs. If we notice a key metric starting to lag (e.g., discovery calls aren't happening as planned), we will identify the root cause immediately in our daily stand-ups or weekly reviews and make proactive course corrections. This allows us to address issues quickly before they impact our overall progress towards our target project funding.</p>
+                    </CollapsibleCard>
+                </div>
+            );
+
+            const CofoundersRolePage = () => (
+                <div className="space-y-6">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">
+                        Our Role as Co-founders: Empower, Support & Adapt Consciously
+                    </h2>
+                    <p className="text-lg text-gray-700 mb-4">
+                        As co-founders, our commitment to your success during this sprint is paramount. We understand the challenges of wearing multiple hats and are here to ensure you have the support needed to thrive:
+                    </p>
+
+                    <CollapsibleCard title="Empowerment & Trust" defaultOpen={true} headerBgClass="bg-purple-50" headerTextColorClass="text-purple-700">
+                        <p className="text-gray-700">We trust each of you to take full ownership of your assigned tasks and sub-tasks. We will empower you to make decisions within your areas of responsibility, knowing that you are closest to the work.</p>
+                    </CollapsibleCard>
+
+                    <CollapsibleCard title="Removing Blockers" headerBgClass="bg-purple-50" headerTextColorClass="text-purple-700">
+                        <p className="text-gray-700">Our primary role will be to identify and swiftly remove any obstacles you face. Whether it's providing quick approvals, making necessary introductions, resolving internal conflicts arising from multi-hat responsibilities, or re-prioritizing tasks, we are here to clear your path. Please voice any blockers immediately in stand-ups.</p>
+                    </CollapsibleCard>
+
+                    <CollapsibleCard title="Motivation & Recognition" headerBgClass="bg-purple-50" headerTextColorClass="text-purple-700">
+                        <p className="text-gray-700">We understand the intensity of this sprint. We will actively acknowledge your efforts, celebrate milestones (even small wins like a successful discovery call or a completed content piece), and maintain a positive, focused, and energetic environment. Your hard work and dedication will be recognized and appreciated.</p>
+                    </CollapsibleCard>
+
+                    <CollapsibleCard title="Continuous Adaptability" headerBgClass="bg-purple-50" headerTextColorClass="text-purple-700">
+                        <p className="text-gray-700">This 5-week plan is a dynamic roadmap, not a rigid contract. We are committed to being agile and responsive. We will constantly learn from our outreach, client feedback, and market response. If an approach isn't yielding the desired results, or if a new opportunity arises, we are ready to pivot our tactics and try something new, in consultation with the team.</p>
+                    </CollapsibleCard>
+
+                    <CollapsibleCard title="Post-Mortem Analysis" headerBgClass="bg-purple-50" headerTextColorClass="text-purple-700">
+                        <p className="text-gray-700">At the end of the 5 weeks, regardless of the immediate outcome, we will conduct a thorough review. This isn't just about whether our <span className="font-semibold">target project funding</span> was met, but more importantly, about what we learned about our processes, our market, and our team's capabilities. These insights will be crucial in shaping our go-to-market strategy for the next 3, 6, and 12 months.</p>
+                    </CollapsibleCard>
+                </div>
+            );
+
+
+            // Render the current page based on state
+            const renderPage = () => {
+                switch (currentPage) {
+                    case 'overview':
+                        return <OverviewPage />;
+                    case 'detailed-plan':
+                        return <DetailedPlanPage />;
+                    case 'how-we-work':
+                        return <HowWeWorkPage />;
+                    case 'cadence':
+                        return <RhythmicCadencePage />;
+                    case 'measurement':
+                        return <RobustMeasurementPage />;
+                    case 'cofounders-role':
+                        return <CofoundersRolePage />;
+                    default:
+                        return <OverviewPage />;
                 }
-            });
-        }
+            };
 
-        // Function to render the week-wise roles summary (now hidden)
-        function renderRolesPerWeekSummary() {
-            // This function is kept for structural integrity but its output is hidden
-            const rolesPerWeekSummaryDiv = document.getElementById('rolesPerWeekSummary');
-            rolesPerWeekSummaryDiv.innerHTML = '';
-        }
+            return (
+                <div className="min-h-screen bg-gray-100 font-inter text-gray-800">
+                    <header className="bg-indigo-700 text-white p-4 shadow-md">
+                        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center">
+                            <h1 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-0">
+                                5-Week Revenue Generation Action Plan
+                            </h1>
+                            <nav className="flex flex-wrap justify-center sm:justify-end gap-2 sm:gap-4 text-sm sm:text-base">
+                                <button
+                                    onClick={() => navigateTo('overview')}
+                                    className={`px-3 py-2 rounded-md transition-colors duration-200 ${currentPage === 'overview' ? 'bg-indigo-500' : 'hover:bg-indigo-600'}`}
+                                >
+                                    Overview
+                                </button>
+                                <button
+                                    onClick={() => navigateTo('detailed-plan')}
+                                    className={`px-3 py-2 rounded-md transition-colors duration-200 ${currentPage === 'detailed-plan' ? 'bg-indigo-500' : 'hover:bg-indigo-600'}`}
+                                >
+                                    Detailed Plan
+                                </button>
+                                <button
+                                    onClick={() => navigateTo('how-we-work')}
+                                    className={`px-3 py-2 rounded-md transition-colors duration-200 ${currentPage === 'how-we-work' ? 'bg-indigo-500' : 'hover:bg-indigo-600'}`}
+                                >
+                                    How We'll Work
+                                </button>
+                                <button
+                                    onClick={() => navigateTo('cadence')}
+                                    className={`px-3 py-2 rounded-md transition-colors duration-200 ${currentPage === 'cadence' ? 'bg-indigo-500' : 'hover:bg-indigo-600'}`}
+                                >
+                                    Our Cadence
+                                </button>
+                                <button
+                                    onClick={() => navigateTo('measurement')}
+                                    className={`px-3 py-2 rounded-md transition-colors duration-200 ${currentPage === 'measurement' ? 'bg-indigo-500' : 'hover:bg-indigo-600'}`}
+                                >
+                                    Measurement
+                                </button>
+                                <button
+                                    onClick={() => navigateTo('cofounders-role')}
+                                    className={`px-3 py-2 rounded-md transition-colors duration-200 ${currentPage === 'cofounders-role' ? 'bg-indigo-500' : 'hover:bg-indigo-600'}`}
+                                >
+                                    Co-founders' Role
+                                </button>
+                            </nav>
+                        </div>
+                    </header>
 
-        // Render the Gantt chart when the window loads
-        window.onload = () => {
-            renderGanttChart();
+                    <main className="max-w-6xl mx-auto p-4 sm:p-6 md:p-8 lg:p-10 bg-white rounded-lg shadow-xl my-8">
+                        {renderPage()}
+                    </main>
+
+                    <footer className="text-center text-gray-500 text-sm mt-10 p-4 border-t border-gray-200">
+                        &copy; 2025 Your Company Name. All rights reserved.
+                    </footer>
+                </div>
+            );
         };
 
-        // Re-render on window resize for responsiveness
-        window.onresize = () => {
-            renderGanttChart();
-        };
+        ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
 </html>
