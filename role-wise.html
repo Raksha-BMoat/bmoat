@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Action Plan Visualizer</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            color: #334155; /* Darker text */
+        }
+        .gantt-chart-container {
+            background-color: #ffffff;
+            border-radius: 1rem; /* Rounded corners */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+            overflow-x: auto; /* Enable horizontal scrolling for smaller screens */
+        }
+        .gantt-bar {
+            border-radius: 0.5rem; /* Rounded corners for bars */
+            padding: 0.75rem 1rem; /* Increased padding for larger box size */
+            font-size: 0.875rem; /* sm text */
+            color: #ffffff;
+            white-space: normal; /* Allow text to wrap */
+            overflow: visible; /* Allow content to be fully visible */
+            text-overflow: clip; /* Prevent ellipsis */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            height: auto; /* Allow height to adjust based on content */
+        }
+        /* Custom colors for different roles */
+        .bg-sales-marketing { background-color: #6366f1; } /* Indigo */
+        .bg-website-digital { background-color: #ef4444; } /* Red */
+        .bg-sales-collateral { background-color: #f97316; } /* Orange */
+        .bg-team-general { background-color: #06b6d4; } /* Cyan */
+        .bg-content-creator { background-color: #10b981; } /* Emerald */
+        .bg-developer-video { background-color: #3b82f6; } /* Blue */
+        .bg-ops-project { background-color: #8b5cf6; } /* Violet */
+        .bg-co-founders { background-color: #ec4899; } /* Pink */
+
+        .grid-container {
+            display: grid;
+            /* Default for small screens: role column + enough width for all 5 weeks to scroll horizontally */
+            grid-template-columns: minmax(120px, 0.5fr) repeat(5, minmax(80px, 1fr));
+            gap: 0.5rem;
+            padding: 1rem;
+        }
+
+        /* Medium screens (tablets) */
+        @media (min-width: 768px) {
+            .grid-container {
+                grid-template-columns: minmax(150px, 0.5fr) repeat(5, minmax(100px, 1fr));
+            }
+        }
+
+        /* Large screens (desktops) */
+        @media (min-width: 1024px) {
+            .grid-container {
+                grid-template-columns: minmax(180px, 0.5fr) repeat(5, minmax(120px, 1fr));
+            }
+        }
+
+        .grid-header, .grid-cell {
+            padding: 0.75rem 0.5rem;
+            text-align: center;
+            border-radius: 0.5rem;
+        }
+
+        .grid-header {
+            font-weight: 600; /* Semi-bold */
+            background-color: #e2e8f0; /* Light gray */
+            color: #475569; /* Slate */
+        }
+
+        .role-label {
+            font-weight: 500; /* Medium */
+            text-align: left;
+            padding-left: 1rem;
+            background-color: #f8fafc; /* Lighter gray */
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Ensure task bars align correctly within their week column */
+        .task-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem; /* Space between tasks in the same cell */
+            height: 100%;
+            justify-content: center; /* Center tasks vertically */
+        }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-4xl font-bold text-center mb-8 text-gray-800">5-Week Action Plan Overview</h1>
+
+        <div class="gantt-chart-container">
+            <div id="ganttChart" class="grid-container">
+                <!-- Chart will be rendered here by JavaScript -->
+            </div>
+        </div>
+
+        <div class="mt-12 p-6 bg-white rounded-xl shadow-lg">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-700">Action Plan Details</h2>
+            <p class="text-gray-600 mb-4">This chart visually represents the key tasks for each role across the 5-week action plan. Each colored bar indicates a task, its duration, and the responsible role.</p>
+            <p class="text-gray-600">Hover over the bars to see the full task description.</p>
+
+            <h3 class="text-xl font-semibold mt-6 mb-3 text-gray-700">Color Key:</h3>
+            <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-gray-700">
+                <li class="flex items-center"><span class="w-4 h-4 rounded-full bg-sales-marketing mr-2"></span> Sales & Marketing Person</li>
+                <li class="flex items-center"><span class="w-4 h-4 rounded-full bg-website-digital mr-2"></span> Website & Digital Presence</li>
+                <li class="flex items-center"><span class="w-4 h-4 rounded-full bg-sales-collateral mr-2"></span> Sales Collateral</li>
+                <li class="flex items-center"><span class="w-4 h-4 rounded-full bg-team-general mr-2"></span> Team (General)</li>
+                <li class="flex items-center"><span class="w-4 h-4 rounded-full bg-content-creator mr-2"></span> Content Creator</li>
+                <li class="flex items-center"><span class="w-4 h-4 rounded-full bg-developer-video mr-2"></span> Developer & Product Video Builder</li>
+                <li class="flex items-center"><span class="w-4 h-4 rounded-full bg-ops-project mr-2"></span> Ops Manager & Project Manager</li>
+                <li class="flex items-center"><span class="w-4 h-4 rounded-full bg-co-founders mr-2"></span> Co-founders</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Define the action plan data
+        const actionPlan = [
+            {
+                week: 1,
+                role: "Sales & Marketing Person",
+                tasks: [
+                    "Identify 10-15 'warm' leads from existing contacts, past clients, and recent inquiries, suitable for Branding, Website Building (Framer/Webflow), Pitchdeck Workshops, or product integrations."
+                ],
+                colorClass: "bg-sales-marketing"
+            },
+            {
+                week: 1,
+                role: "Website & Digital Presence",
+                tasks: [
+                    "Update the website to clearly mention Pitchdeck Storytelling Workshops, the HubSpot Lottie Plugin, and the Shopify WhatsApp Pricing Plugin, with optimized calls-to-action (CTAs).",
+                    "Draft 3-5 concise LinkedIn posts to announce the full range of services and products."
+                ],
+                colorClass: "bg-website-digital"
+            },
+            {
+                week: 1,
+                role: "Sales Collateral",
+                tasks: [
+                    "Develop concise proposals or one-pagers for core services (Branding, Web Build, Pitchdeck), highlighting benefits, project duration (under 12 weeks), and estimated pricing.",
+                    "Prepare 2-3 brief case studies or testimonials from successful projects, especially quickly completed ones."
+                ],
+                colorClass: "bg-sales-collateral"
+            },
+            {
+                week: 2,
+                role: "Sales & Marketing Person",
+                tasks: [
+                    "Execute personalized outreach to warm leads identified in Week 1, focusing on understanding needs and pitching relevant services/products with an emphasis on the 12-week project maximum.",
+                    "Aim to schedule 5-7 initial discovery calls.",
+                    "Research preferences and best fits based on current purchase ICP's LinkedIn profile. Identify their role, explore similar people, and define their non-negotiable and explorable JTBDs."
+                ],
+                colorClass: "bg-sales-marketing"
+            },
+            {
+                week: 2,
+                role: "Team (General)",
+                tasks: [
+                    "Share the published LinkedIn posts announcing full offerings."
+                ],
+                colorClass: "bg-team-general"
+            },
+            {
+                week: 2,
+                role: "Content Creator",
+                tasks: [
+                    "Draft a short blog post or detailed service page for the Pitchdeck Storytelling Workshops, highlighting their value for seed and early-stage founders."
+                ],
+                colorClass: "bg-content-creator"
+            },
+            {
+                week: 2,
+                role: "Developer & Product Video Builder",
+                tasks: [
+                    "Create crisp, short demo videos (under 2-3 minutes) for both the HubSpot Lottie Plugin and the Shopify WhatsApp Pricing Plugin, ready for sales conversations."
+                ],
+                colorClass: "bg-developer-video"
+            },
+            {
+                week: 3,
+                role: "Sales & Marketing Person",
+                tasks: [
+                    "Prepare and send out 3-5 detailed proposals based on Week 2 discovery calls, clearly stating a maximum project duration of 12 weeks and transparent pricing.",
+                    "Actively follow up on submitted proposals and negotiate with clients to close deals.",
+                    "Research and identify 5-10 new potential leads."
+                ],
+                colorClass: "bg-sales-marketing"
+            },
+            {
+                week: 3,
+                role: "Ops Manager & Project Manager",
+                tasks: [
+                    "Review team availability and potential workload for incoming 12-week projects to identify potential bottlenecks."
+                ],
+                colorClass: "bg-ops-project"
+            },
+            {
+                week: 4,
+                role: "Sales & Marketing Person",
+                tasks: [
+                    "Focus on closing 2-3 contracts.",
+                    "Work with the Ops Manager to facilitate documentation and payment processes.",
+                    "Initiate outreach to new leads identified in Week 3 and schedule 3-5 new discovery calls."
+                ],
+                colorClass: "bg-sales-marketing"
+            },
+            {
+                week: 4,
+                role: "Project Manager",
+                tasks: [
+                    "Hold an internal kick-off meeting with relevant team members for any signed contracts to ensure a smooth transition and prompt client onboarding."
+                ],
+                colorClass: "bg-ops-project" // Using ops-project color for Project Manager as well
+            },
+            {
+                week: 4,
+                role: "Content Creator",
+                tasks: [
+                    "Draft short articles or social media snippets focusing on how the HubSpot Lottie Plugin and Shopify WhatsApp Pricing Plugin solve specific user problems."
+                ],
+                colorClass: "bg-content-creator"
+            },
+            {
+                week: 5,
+                role: "Team (General)",
+                tasks: [
+                    "Intensive follow-up on all open proposals and leads, prioritizing conversations with the highest potential value to close remaining funding gaps."
+                ],
+                colorClass: "bg-team-general"
+            },
+            {
+                week: 5,
+                role: "Sales & Marketing Person",
+                tasks: [
+                    "Send targeted emails or LinkedIn messages to potential HubSpot and Shopify users with product demo videos and new content from Week 4 to encourage product trials or demonstrations."
+                ],
+                colorClass: "bg-sales-marketing"
+            },
+            {
+                week: 5,
+                role: "Co-founders",
+                tasks: [
+                    "Lead a team meeting to review overall performance against the project funding goal, discuss successes and challenges, and plan for the next cycle."
+                ],
+                colorClass: "bg-co-founders"
+            }
+        ];
+
+        // Function to render the Gantt chart
+        function renderGanttChart() {
+            const ganttChartDiv = document.getElementById('ganttChart');
+            ganttChartDiv.innerHTML = ''; // Clear existing content
+
+            const roles = [...new Set(actionPlan.map(item => item.role))];
+            const numWeeks = 5;
+
+            // Add header row (empty cell for roles, then week numbers)
+            const headerRow = document.createElement('div');
+            headerRow.className = 'grid-header';
+            headerRow.textContent = 'Role';
+            ganttChartDiv.appendChild(headerRow);
+
+            for (let i = 1; i <= numWeeks; i++) {
+                const weekHeader = document.createElement('div');
+                weekHeader.className = 'grid-header';
+                weekHeader.textContent = `Week ${i}`;
+                ganttChartDiv.appendChild(weekHeader);
+            }
+
+            // Add rows for each role
+            roles.forEach(role => {
+                const roleLabel = document.createElement('div');
+                roleLabel.className = 'role-label';
+                roleLabel.textContent = role;
+                ganttChartDiv.appendChild(roleLabel);
+
+                for (let i = 1; i <= numWeeks; i++) {
+                    const weekCell = document.createElement('div');
+                    weekCell.className = 'grid-cell';
+                    
+                    const tasksInWeek = actionPlan.filter(item => item.role === role && item.week === i);
+                    
+                    if (tasksInWeek.length > 0) {
+                        const taskWrapper = document.createElement('div');
+                        taskWrapper.className = 'task-wrapper';
+                        tasksInWeek.forEach(taskItem => {
+                            taskItem.tasks.forEach(taskDesc => {
+                                const taskBar = document.createElement('div');
+                                taskBar.className = `gantt-bar ${taskItem.colorClass} hover:opacity-90 transition-opacity cursor-help`;
+                                taskBar.textContent = taskDesc; // Display full text for now, ellipsis if overflows
+                                taskBar.title = taskDesc; // Tooltip for full description
+                                taskWrapper.appendChild(taskBar);
+                            });
+                        });
+                        weekCell.appendChild(taskWrapper);
+                    }
+                    ganttChartDiv.appendChild(weekCell);
+                }
+            });
+        }
+
+        // Render the chart when the window loads
+        window.onload = renderGanttChart;
+
+        // Re-render on window resize for responsiveness (optional, but good for dynamic layouts)
+        window.onresize = renderGanttChart;
+    </script>
+</body>
+</html>
